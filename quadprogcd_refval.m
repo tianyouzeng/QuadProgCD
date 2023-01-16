@@ -21,7 +21,7 @@
 
 % Requires MOSEK, Gurobi and SDPNAL+ toolbox to run.
 
-function [status, minval, maxval_ub, maxval_lb] = quadprogcd_veri(H, D, U, p, A, b, c, param)
+function [status, minval, maxval_ub, maxval_lb] = quadprogcd_refval(H, D, U, p, A, b, c, param)
  
     maxtime = param.MAXTIME;
     
