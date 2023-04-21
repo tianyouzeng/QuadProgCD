@@ -71,7 +71,6 @@ function [Y, ub] = mosek_sdp(H_bar, A_bar, b, A_hat, B_hat, t_star, tol)
     param.MSK_DPAR_INTPNT_CO_TOL_REL_GAP = tol;
     param.MSK_DPAR_INTPNT_CO_TOL_INFEAS = tol;
     param.MSK_IPAR_AUTO_UPDATE_SOL_INFO = 'MSK_ON';
-    %param.MSK_IPAR_INTPNT_SCALING = 'MSK_SCALING_NONE';
     
     [r, res] = mosekopt('minimize echo(0) info', prob, param);
 
@@ -85,30 +84,12 @@ function [Y, ub] = mosek_sdp(H_bar, A_bar, b, A_hat, B_hat, t_star, tol)
     S = S + S.' - diag(diag(S));
     gap = abs(res.sol.itr.dobjval - res.sol.itr.pobjval);
     
-%     barS = -H_bar;
-%     y = res.sol.itr.y;
-%     j = 1;
-%     for i = 1 : l
-%         barS = barS - y(j) * A_bar{i};
-%         j = j + 1;
-%     end
-%     for i = 1 : l
-%         barS = barS - y(j) * A_tilde{i};
-%         j = j + 1;
-%     end
-%     R = zeros(k);
-%     upperTriangleIndices = triu(true(k));
-%     R(upperTriangleIndices) = y(j:end);
-%     R = R + R.' - diag(diag(R));
-%     barS = barS - R;
-    
     % Compute an upper bound from the inexact solution
     % Usually DVIOLCON should be very small
     viol = max([res.info.MSK_DINF_SOL_ITR_DVIOLCON;
         res.info.MSK_DINF_SOL_ITR_PVIOLCON;
         abs(min([min(eig(S)), 0]));
         gap]);
-    %viol = 0;% Debug use only, delete this!!!
     ub = (-res.sol.itr.dobjval + (1 + t_star^2) * viol);
 end
 

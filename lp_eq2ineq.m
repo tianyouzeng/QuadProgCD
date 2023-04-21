@@ -6,14 +6,9 @@ function [D, d, phi_0, F, f, l] = lp_eq2ineq(H, p, A, b, x, I)
 
     basic_pos = sort(I);
    
-    % positions of nonbasic variables
     non_basic_pos = setdiff(1:size(A, 2), basic_pos);
     non_basic_pos = sort(non_basic_pos);
     
-    % computing parameters for coordinate transformation
-    % transform the problem into inequality form s.t.
-    % vertex x is moved to origin, and
-    % the polyhedral is bounded by positive orthant
     B = A(:, basic_pos);
     N = A(:, non_basic_pos);
     F = B \ N;

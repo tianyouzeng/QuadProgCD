@@ -2,10 +2,6 @@ function [Y, ub] = sdpnal_plus_sdp(H_bar, A_bar, b, A_hat, B_hat, x_lmax, t_star
     k = size(H_bar, 1);
     l = size(A_bar, 1);
 
-    
-    % norm_H_bar = norm(H_bar);
-    % H_bar = H_bar / norm_H_bar;
-    
     print_log = evalc('model = ccp_model();');
     Y = var_sdp(k, k);
     model.add_variable(Y);
@@ -21,10 +17,9 @@ function [Y, ub] = sdpnal_plus_sdp(H_bar, A_bar, b, A_hat, B_hat, x_lmax, t_star
     
     
     model.setparameter('maxiter', 50000, 'printlevel', 2, 'tol', 1e-6, 'stopoption', 1);
-    %model.solve();
     
         
-    if isempty(x_lmax) % Do not use initial value...
+    if isempty(x_lmax)
         X_init = [];
     else
         X_init = cell(1);
@@ -75,15 +70,10 @@ function [Y, ub] = sdpnal_plus_sdp(H_bar, A_bar, b, A_hat, B_hat, x_lmax, t_star
     solution.dual_optimal.Z2 = V; 
     model.info.dual_opt = solution.dual_optimal; % new for dual optimal
     solution.info = info_sol;
-    %save(model.info.prob.name, 'input_data', 'solution');
     
     Y = X{1,1};
     
     % calculating upper bound using inaccurate solution
-    %ub_trX = 2;
-    %if size(b_ineq, 1) ~= 0
-    %    ub_trX = ub_trX + norm(b_ineq)^2 + norm(A_ineq, 1) * norm(b_ineq, 1) + norm(A_ineq, 1)^2;
-    %end
     A_star_y = zeros(size(H_bar));
     for i = 1 : l
         A_star_y = A_star_y + y(i) * A_bar{i};
@@ -109,9 +99,7 @@ function [Y, ub] = sdpnal_plus_sdp(H_bar, A_bar, b, A_hat, B_hat, x_lmax, t_star
     
     viol = max([pviol; dviol; gap]);
 
-    %ub = (-obj(2) + abs(obj(1) - obj(2)) * (1 + t_star)) * norm_H_bar;
     tracemax = 1 + t_star^2;
-    % ub = - (obj(2) - viol * tracemax) * norm_H_bar;
     ub = - (obj(2) - viol * tracemax);
 
 end

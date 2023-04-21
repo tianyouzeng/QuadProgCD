@@ -7,12 +7,10 @@
 % polyhedral set {x : Ax = b, x >= 0}. Denote by f^* the maximal value of f(x) where x belongs to the
 % polyhedral set {x : Ax = b, x >= 0}. 
 
-% Output: status has four possible values: {0,1,2,3}.
+% Output: status has four possible values: {0,1,3}.
 % 0 - not converged before max_iter reached;
 % 1 - converged;
 % 3 - infeasible;
-
-% Output: minval=f_*
 
 % Output: maxval_ub is a value larger than or equal to f^*
 
@@ -31,21 +29,11 @@ function [status, maxval_ub, maxval_lb, hist] = quadprogcd(H, D, U, p, A, b, par
     
     if check_feasibility(A, b) == 0
         status = 3;
-        %minval = Inf;
         maxval_ub = -Inf;
         maxval_lb = -Inf;
         return;
     end
 
-    % compute the minimum value 
-
-    %[status, minval] = min_update(H, p, A, b, c);
-    %if status ~= 0
-    %    maxval_ub = -Inf;
-    %    maxval_lb = -Inf;
-    %    return;
-    %end
-    
     % initializing
     
     lb_global = -Inf;
@@ -66,11 +54,8 @@ function [status, maxval_ub, maxval_lb, hist] = quadprogcd(H, D, U, p, A, b, par
         x_KKT = [];
         lb_2 = -Inf;
         
-        % Below is another method for generating initial vertex
-        % Uncomment / comment if necessary
-        
-        [x_large, lb_1] = search_large_vertex(H, U, p, A, b);  % find a vertex x_large
-        [x_KKT,I] = search_local_max_vertex(H, p, A, b, x_large);  % find a KKT vertex starting from x_large
+        [x_large, lb_1] = search_large_vertex(H, U, p, A, b);
+        [x_KKT,I] = search_local_max_vertex(H, p, A, b, x_large);
         lb_2=objective_value(H,p,x_KKT);
         if(lb_2<lb_1 - abs(lb_1) * 1e-10)
             error('Something is wrong. The objective value lb_2=%f should be larger than the objective value lb_1=%f. \n\n ', lb_2,lb_1);
@@ -83,9 +68,6 @@ function [status, maxval_ub, maxval_lb, hist] = quadprogcd(H, D, U, p, A, b, par
         end
         
         [ub_current, y_KKT, Iy] = max_ub_sdr_update(H, p, A, b, x_KKT, param);
-        %if(ub_current>ub_global*(1+1e-10))
-        %    error('Something is wrong. The current upper bound ub_current=%f should be smaller than the previous upper bound ub_global=%f.\n\n', ub_current, ub_global);
-        %end
         lb_3=objective_value(H,p,y_KKT);
         if lb_3>lb_2
             x_KKT=y_KKT;
@@ -107,9 +89,7 @@ function [status, maxval_ub, maxval_lb, hist] = quadprogcd(H, D, U, p, A, b, par
         end
 
         %%%  add konno's cut %%%
-        
-        % Here, we use Q, d, F, f to store old feasible region
-        % We use H, p, A, b to store updated region with Konno's cut
+
         [Q, d, phi_0, F, f, l] = lp_eq2ineq(H, p, A, b, x_KKT, I);
         HH = H;
         pp = p;
@@ -124,7 +104,6 @@ function [status, maxval_ub, maxval_lb, hist] = quadprogcd(H, D, U, p, A, b, par
             lb_global=max(lb_global,lb_4);
         end
         if cut_status==2 || (cut_status==0 && check_feasibility(A, b) == 0)
-            fprintf('\n **After adding Konno cut, the set becomes infeasible!\n');
                 ub_global = lb_global;
                 running_time = toc(tstart);
                 hist = update_hist(hist, running_time, lb_global, ub_global, param.DISPLAY);
@@ -139,7 +118,7 @@ function [status, maxval_ub, maxval_lb, hist] = quadprogcd(H, D, U, p, A, b, par
             [l_cut, deepened] = lr_cut(Q, d, F, f, t_cut, k_cut, lb_global - phi_0, phi_0, eta);
 
             if deepened == true
-                [H, U, p, A, b] = update_feasible_region(UU, DD, pp, AA, bb, l_cut, I);
+               [H, U, p, A, b] = update_feasible_region(UU, DD, pp, AA, bb, l_cut, I);
             end
             if deepened == false
                 [d_cut, deepened] = dnnr_cut(HH, pp, AA, bb, lb_global, t_cut, k_cut, I, eta, param);
@@ -149,7 +128,6 @@ function [status, maxval_ub, maxval_lb, hist] = quadprogcd(H, D, U, p, A, b, par
             end
 
             if check_feasibility(A, b) == 0   
-                fprintf('\n **After adding deepened cut, the set becomes infeasible!\n');
                 ub_global=lb_global;
                 running_time = toc(tstart);
                 hist = update_hist(hist, running_time, lb_global, ub_global, param.DISPLAY);

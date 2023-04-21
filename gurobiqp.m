@@ -14,23 +14,13 @@ function [x, fval, exitflag] = gurobiqp(H, p, A, b)
     params.OutputFlag = 0;
     
     result = gurobi(model, params);
-%     x = result.x;
-%     fval = result.objval;
-%     if strcmp(result.status, 'OPTIMAL') %#ok<*BDSCA>
-%         exf = 1;
-%     end
-%     if strcmp(result.status, 'INFEASIBLE') || strcmp(result.status, 'INF_OR_UNBD') || strcmp(result.status, 'UNBOUNDED')
-%         exf = -2;
-%     end
-    
-% Resolve model if status is INF_OR_UNBD
+
     if strcmp(result.status,'INF_OR_UNBD')
         params.DualReductions = 0;
         warning('Infeasible or unbounded, resolve without dual reductions to determine...');
         result = gurobi(model,params);
     end
 
-    % Collect results
     x = [];
     output.message = result.status;
     output.constrviolation = [];

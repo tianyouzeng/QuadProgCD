@@ -1,8 +1,6 @@
 % Solve the minimum for our quadratic program and refresh the status of our problem
 
 function [status, min] = min_update(H, p, A, b, c)
-    %options = optimoptions('quadprog','Display','none');
-    %[~, min, exf] = quadprog(2 * H, 2 * p, [], [], A, b, zeros(1, size(A, 2)), [], [], options);
     options = optimoptions('quadprog','Display','none');
     [~, min, exf] = quadprog(2 * H, 2 * p, [], [], A, b, zeros(1, size(A, 2)), [], [], options);
     

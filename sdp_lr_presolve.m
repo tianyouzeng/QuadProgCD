@@ -15,24 +15,6 @@ function fval = sdp_lr_presolve(H, p, A, b)
     l = size(A_bar, 1);
     N = zeros(k, k);
     N(end, end) = 1;
-    
-    
-%     cvx_begin quiet
-%         cvx_solver mosek_2;
-%         variable Y(k, k) symmetric;
-%         maximize trace(H_bar * Y)
-%         subject to
-%         for i = 1 : l
-%             trace(A_bar{i} * Y) == b(i);
-%         end
-%         %trace(A_h * Y) == b'*b;
-%         A_hat * Y * A_hat' == B_hat;
-%         %for i = 1 : l
-%         %    trace(A_hat(i,:)'*A_hat(i,:)*Y) == B_hat(i, i);
-%         %end
-%         Y >= 0;
-%         trace(N * Y) == 1;
-%     cvx_end
 
     
     f = reshape(H_bar, [], 1);

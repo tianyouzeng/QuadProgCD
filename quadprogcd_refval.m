@@ -24,7 +24,8 @@
 function [status, minval, maxval_ub, maxval_lb] = quadprogcd_refval(H, D, U, p, A, b, c, param)
  
     maxtime = param.MAXTIME;
-    
+    delta = param.REFVAL_CUT_DELTA;
+
     % check if the polyhedral set {x : Ax = b, x >= 0} is empty
     
     if check_feasibility(A, b) == 0
@@ -57,7 +58,7 @@ function [status, minval, maxval_ub, maxval_lb] = quadprogcd_refval(H, D, U, p, 
 
     % performing vertex searching, SDR update and cutting plane methods
     
-    while status==0  || running_time>maxtime
+    while status==0  && running_time <= maxtime
         [x_large, lb_1] = search_large_vertex(H, U, p, A, b);  % find a vertex x_large
         lb_global = lb_1;
         if c <= lb_global
@@ -77,10 +78,7 @@ function [status, minval, maxval_ub, maxval_lb] = quadprogcd_refval(H, D, U, p, 
             break;
         end
         
-        [ub_current, y_KKT, Iy] = max_ub_sdr_update(H, p, A, b, x_KKT, param.SOLVER);
-        %if(ub_current>ub_global*(1+1e-10))
-        %    error('Something is wrong. The current upper bound ub_current=%f should be smaller than the previous upper bound ub_global=%f.\n\n', ub_current, ub_global);
-        %end
+        [ub_current, y_KKT, Iy] = max_ub_sdr_update(H, p, A, b, x_KKT, param);
         lb_3=objective_value(H,p,y_KKT);
         if lb_3>lb_2
             x_KKT=y_KKT;
@@ -102,8 +100,6 @@ function [status, minval, maxval_ub, maxval_lb] = quadprogcd_refval(H, D, U, p, 
 
         %%%  add konno's cut %%%
         
-        % Here, we use Q, d, F, f to store old feasible region
-        % We use H, p, A, b to store updated region with Konno's cut
         [Q, d, phi_0, F, f, l] = lp_eq2ineq(H, p, A, b, x_KKT, I);
         HH = H;
         pp = p;
@@ -111,40 +107,43 @@ function [status, minval, maxval_ub, maxval_lb] = quadprogcd_refval(H, D, U, p, 
         bb = b;
         UU = U;
         DD = D;
-        [H,U,p,A,b,t_cut,k_cut,status,lb_4] = konno_cut(H,D,U, p, A, b, x_KKT, I, lb_global);
-        %[HH,UU,pp,AA,bb,t_cut,k_cut,normineq,status,lb_4] = konno_cut(H,D,U, p, A, b, normineq,x_KKT, I, c);
+        [H,U,p,A,b,t_cut,k_cut,status,lb_4] = konno_cut(H,D,U, p, A, b, x_KKT, I, c - delta);
 
         %%% check status after adding cut %%%
         if status==1
             lb_global=max(lb_global,lb_4);
         end
         if status==2
-            fprintf('\n **After adding Tuy cut, the set becomes infeasible!\n');
-              ub_global=c;
+            ub_global=c-delta;
+            break;
         end
         if status==0
             if check_feasibility(A, b) == 0   
-                fprintf('\n **After adding Konno cut, the set becomes infeasible!\n');
-                ub_global=c;
+                ub_global=c-delta;
                 status=2;
+                break;
             end
         end
 
        %%% add deeper cut %%%
-
-        % We directly pass (H, p, A, b) with Konno's cut to our function
         
-        eta = 0.5;
-        [l_cut, deepened] = lr_cut(Q, d, F, f, t_cut, k_cut, lb_global - phi_0, phi_0, eta);
+        eta = 1 / param.CUTDEPTH;
+        [l_cut, deepened] = lr_cut(Q, d, F, f, t_cut, k_cut, c - delta - phi_0, phi_0, eta);
         
         if deepened == true
-            [H, U, p, A, b] = update_feasible_region(UU, DD, pp, AA, bb, l_cut);
+            [H, U, p, A, b] = update_feasible_region(UU, DD, pp, AA, bb, l_cut, I);
         end
         if deepened == false
-            [d_cut, deepened] = dnnr_cut(HH, pp, AA, bb, lb_global, t_cut, k_cut, I, eta);
+            [d_cut, deepened] = dnnr_cut(HH, pp, AA, bb, c - delta, t_cut, k_cut, I, eta, param);
             if deepened == true
-                [H, U, p, A, b] = update_feasible_region(UU, DD, pp, AA, bb, d_cut);
+                [H, U, p, A, b] = update_feasible_region(UU, DD, pp, AA, bb, d_cut, I);
             end
+        end
+
+        if check_feasibility(A, b) == 0   
+            ub_global=c-delta;
+            running_time = toc(tstart);
+            status = 1;
         end
  
         running_time=running_time+toc(tstart);

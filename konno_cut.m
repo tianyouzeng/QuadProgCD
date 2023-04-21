@@ -11,14 +11,9 @@ function [H, U, p, A, b, tuy_cut, konno_cut, status, lb] = konno_cut(H, D0, U,p,
 
     basic_pos = sort(I);
    
-    % positions of nonbasic variables
     non_basic_pos = setdiff(1:size(A, 2), basic_pos);
     non_basic_pos = sort(non_basic_pos);
     
-    % computing parameters for coordinate transformation
-    % transform the problem into inequality form s.t.
-    % vertex x is moved to origin, and
-    % the polyhedral is bounded by positive orthant
     B = A(:, basic_pos);
     N = A(:, non_basic_pos);
     F = B \ N;
@@ -39,13 +34,12 @@ function [H, U, p, A, b, tuy_cut, konno_cut, status, lb] = konno_cut(H, D0, U,p,
     env_splx = -2 * fval;
     
 
-    % generate Tuy's cut
     theta = zeros(l, 1);
     for i = 1 : l
         r = roots([D(i, i) 2*d(i) phi_0-bestobjval]);
         if ~isempty(r)
             theta(i) = max(r);
-        else % D(i, i) = d(i) = 0    =>    r can be unbounded
+        else
             theta(i) = env_splx;
         end
     end
@@ -54,7 +48,7 @@ function [H, U, p, A, b, tuy_cut, konno_cut, status, lb] = konno_cut(H, D0, U,p,
     tuy_cut(tuy_cut<=1e-10)=0;
     
     [~, ~, exitflag] = gurobilp(zeros(l, 1), [F; 1./theta'], [f; 1], [], [], zeros(l, 1));
-    if exitflag == -2 % Tuy's cut lead to a infeasible set
+    if exitflag == -2
         konno_cut = tuy_cut;
         status=2;
         return;
@@ -79,20 +73,12 @@ function [H, U, p, A, b, tuy_cut, konno_cut, status, lb] = konno_cut(H, D0, U,p,
             A_ineq = [-F', t, D(i, :)'; f', -1, d(i)];
             b_ineq = [-d; bestobjval - phi_0];
             [~, fval, exf] = gurobilp(-u, A_ineq, b_ineq, [], [], zeros(size(F, 1) + 2, 1));
-%             u = [-d; bestobjval - phi_0];
-%             t = ones(l, 1) ./ theta;
-%             A_ineq = [F -f; -t' 1];
-%             b_ineq = zeros(size(F, 1) + 1, 1);
-%             A_eq = [D(i, :) d(i)];
-%             b_eq = 1;
-%             [~, fval, exf] = gurobilp(u, A_ineq, b_ineq, A_eq, b_eq, zeros(l + 1, 1));
+
             if exf == 1
                 tau(i) = -fval;
-                %tau(i) = fval;
             else
-                if exf == -3 % Problem unbounded
+                if exf == -3
                     tau(i) = env_splx;
-                    %tau(i) = 1.1e10;
                 else
                     error('something wrong');
                 end

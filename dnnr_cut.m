@@ -1,8 +1,7 @@
 function [d_cut, deepened, phi_d_kcut] = dnnr_cut(H, p, A, b, c, tuy_cut, konno_cut, idx, eta, param)
 
     deepened = 0;
-
-    % Region between Tuy's cut and new cut theta...    
+    
     basic_pos = sort(idx);
     non_basic_pos = setdiff(1:size(A, 2), basic_pos);
     non_basic_pos = sort(non_basic_pos);
@@ -11,8 +10,6 @@ function [d_cut, deepened, phi_d_kcut] = dnnr_cut(H, p, A, b, c, tuy_cut, konno_
     t_cut(non_basic_pos) = tuy_cut;
     k_cut(non_basic_pos) = konno_cut;
     theta = eta * k_cut;
-    %t_cut_norm = norm([t_cut;1]);
-    %theta_norm = norm([theta;1]);
     A = [A, zeros(size(A, 1), 2); -t_cut', 1, 0; theta', 0, 1];
     b = [b; -1; 1];
     H = [H, zeros(size(H, 1), 2); zeros(2, size(H, 1)), zeros(2, 2)];
@@ -29,11 +26,9 @@ function [d_cut, deepened, phi_d_kcut] = dnnr_cut(H, p, A, b, c, tuy_cut, konno_
     [~, t_star] = gurobilp(-ones(size(A, 2), 1), [], [], A, b, zeros(size(A, 2), 1));
     t_star = -t_star;
     [~, ub] = mosek_sdp(H_bar, A_bar, b, A_hat, B_hat, t_star, param.CUT_TOL);
-    %[~, ub] = sdpnal_plus_sdp(H_bar, A_bar, b, A_hat, B_hat, [], t_star, 0);
     
     phi_d_kcut = ub;
 
-    % Acceptance or rejection
     if ub < c
         d_cut = theta;
         deepened = 1;
